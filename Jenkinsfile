@@ -59,5 +59,32 @@ pipeline {
                 }
             }
         }
+        stage('Kubernetes Deployment') {
+            steps {
+                script {
+                    // Start Minikube if not already started
+                    sh 'minikube start'
+
+                    // Check Minikube status
+                    sh 'minikube status'
+
+                    // Set Kubernetes context to Minikube
+                    sh 'kubectl config use-context minikube'
+
+                    // Create deployment
+                    sh "kubectl create deployment spring-web-app --image=${DOCKER_IMAGE_NAME}"
+
+                    // Expose the deployment
+                    sh "kubectl expose deployment spring-web-app --type=LoadBalancer --port=80 --target-port=8085"
+
+                    // Get the Minikube IP
+                    def minikubeIp = sh(script: 'minikube ip', returnStdout: true).trim()
+                    echo "Access your application at: http://${minikubeIp}:80"
+
+                    // Optionally, open the Minikube dashboard
+                    sh 'minikube dashboard &'
+                }
+            }
+        }
     }
 }
