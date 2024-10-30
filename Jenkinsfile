@@ -31,6 +31,7 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
+                // Building the project and packaging it as a .war file
                 sh 'mvn clean package -DskipTests'
             }
         }
@@ -52,8 +53,10 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
+                    // Building the Docker image from the target folder
                     sh "docker build -t ${DOCKER_IMAGE_NAME} ."
                     
+                    // Login and push Docker image
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                         sh "docker push ${DOCKER_IMAGE_NAME}"
