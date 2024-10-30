@@ -7,11 +7,11 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE_NAME = 'nivisha/my-app:latest'
+        DOCKER_IMAGE_NAME = 'nivisha/spring-app:latest'
         GITHUB_REPO = 'https://github.com/Nivisha01/myfirstdockerapp.git'
         SONARQUBE_SERVER = 'http://44.196.180.172:9000/'
         SONARQUBE_TOKEN = credentials('sonar-token')
-        PROJECT_NAME = 'Spring-App'
+        PROJECT_NAME = 'Web-app'
         SONAR_HOST_URL = "${SONARQUBE_SERVER}"
         DOCKER_CREDENTIALS_ID = 'DockerHub_Cred'
     }
@@ -22,20 +22,18 @@ pipeline {
                 deleteDir()
             }
         }
-
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'GitHub_Credentials', url: "${GITHUB_REPO}", branch: 'master'
+                script {
+                    git credentialsId: 'GitHub_Credentials', url: "${GITHUB_REPO}", branch: 'master'
+                }
             }
         }
-
         stage('Build with Maven') {
             steps {
-                // Building the project and packaging it as a .war file
                 sh 'mvn clean package -DskipTests'
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -44,19 +42,16 @@ pipeline {
                         -Dmaven.test.skip=true \
                         -Dsonar.projectKey=${PROJECT_NAME} \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=$SONARQUBE_TOKEN
+                        -Dsonar.login=${SONARQUBE_TOKEN}
                     """
                 }
             }
         }
-
         stage('Docker Build and Push') {
             steps {
                 script {
-                    // Building the Docker image from the target folder
                     sh "docker build -t ${DOCKER_IMAGE_NAME} ."
-                    
-                    // Login and push Docker image
+
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                         sh "docker push ${DOCKER_IMAGE_NAME}"
@@ -64,11 +59,3 @@ pipeline {
                 }
             }
         }
-    }
-
-    post {
-        always {
-            cleanWs()
-        }
-    }
-}
