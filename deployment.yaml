@@ -40,6 +40,6 @@ spec:
     app: myApp  
   ports:
     - protocol: TCP
-      port: 80               # Port exposed on the LoadBalancer
+      port: 80               # Port exposed on the service
       targetPort: 8082       # Target port on the container
-  type: LoadBalancer
+  type: NodePort  # Using NodePort for Minikube compatibility
