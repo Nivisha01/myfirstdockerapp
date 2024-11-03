@@ -17,23 +17,34 @@ pipeline {
     }
 
     stages {
+        stage('Configure SSH') {
+            steps {
+                sshagent(credentials: ['my-ssh-key']) {
+                    sh 'ssh-add -L' // Optional: Verifies that the SSH key is added
+                    // Optional: Test SSH connection
+                    sh 'ssh -o StrictHostKeyChecking=no ec2-user@localhost "echo SSH connection successful"'
+                }
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
                 deleteDir()
             }
         }
+
         stage('Checkout Code') {
             steps {
-                script {
-                    git credentialsId: 'GitHub_Credentials', url: "${GITHUB_REPO}", branch: 'master'
-                }
+                git credentialsId: 'GitHub_Credentials', url: "${GITHUB_REPO}", branch: 'master'
             }
         }
+
         stage('Build with Maven') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -47,11 +58,11 @@ pipeline {
                 }
             }
         }
+
         stage('Docker Build and Push') {
             steps {
                 script {
                     sh "docker build -t ${DOCKER_IMAGE_NAME} ."
-
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                         sh "docker push ${DOCKER_IMAGE_NAME}"
@@ -59,30 +70,53 @@ pipeline {
                 }
             }
         }
+
         stage('Kubernetes Deployment') {
             steps {
                 script {
-                    // Start Minikube if not already started
-                    sh 'minikube start'
-
-                    // Check Minikube status
-                    sh 'minikube status'
-
-                    // Set Kubernetes context to Minikube
+                    // Start Minikube if not already running
+                    sh '''
+                        export PATH=$PATH:/usr/local/bin
+                        if ! minikube status | grep -q "host: Running"; then
+                            minikube start --driver=none || exit 1
+                        fi
+                    '''
+                    
+                    // Configure kubectl to use Minikube’s context
                     sh 'kubectl config use-context minikube'
 
-                    // Create deployment
-                    sh "kubectl create deployment spring-web-app --image=${DOCKER_IMAGE_NAME}"
-
-                    // Expose the deployment
-                    sh "kubectl expose deployment spring-web-app --type=LoadBalancer --port=80 --target-port=8085"
-
-                    // Get the Minikube IP
+                    // Apply the deployment configuration directly
+                    sh """
+                        kubectl apply -f - <<EOF
+                        apiVersion: apps/v1
+                        kind: Deployment
+                        metadata:
+                          name: spring-web-app
+                          namespace: default
+                        spec:
+                          replicas: 2
+                          selector:
+                            matchLabels:
+                              app: spring-web-app
+                          template:
+                            metadata:
+                              labels:
+                                app: spring-web-app
+                            spec:
+                              containers:
+                                - name: spring-web-app
+                                  image: ${DOCKER_IMAGE_NAME}
+                                  ports:
+                                    - containerPort: 8082
+                        EOF
+                    """
+                    
+                    // Expose deployment
+                    sh "kubectl expose deployment spring-web-app --type=NodePort --port=80 --target-port=8082 --namespace=default || true"
+                    
+                    // Get Minikube IP for application access
                     def minikubeIp = sh(script: 'minikube ip', returnStdout: true).trim()
                     echo "Access your application at: http://${minikubeIp}:80"
-
-                    // Optionally, open the Minikube dashboard
-                    sh 'minikube dashboard &'
                 }
             }
         }
