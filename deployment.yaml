@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myApp-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myApp
+  template:
+    metadata:
+      labels:
+        app: myApp
+    spec:
+      containers:
+        - name: myApp-container
+          image: nivisha/spring-app:latest  
+          ports:
+            - containerPort: 8070  
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "256Mi"  # Minimum memory requested by the container
+              cpu: "500m"      # Minimum CPU requested by the container
+            limits:
+              memory: "512Mi"  # Maximum memory the container can use
+              cpu: "1"         # Maximum CPU the container can use
