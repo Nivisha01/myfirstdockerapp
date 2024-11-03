@@ -16,7 +16,7 @@ spec:
         - name: myApp-container
           image: nivisha/spring-app:latest  
           ports:
-            - containerPort: 8070  
+            - containerPort: 8082  
           imagePullPolicy: Always
           resources:
             requests:
@@ -25,3 +25,21 @@ spec:
             limits:
               memory: "512Mi"  # Maximum memory the container can use
               cpu: "1"         # Maximum CPU the container can use
+          env:
+            - name: JAVA_OPTS
+              value: "-Xmx512m -Xms256m"  # Optional JVM settings for memory management
+      terminationGracePeriodSeconds: 30  # Allows for a graceful shutdown
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myApp-service
+spec:
+  selector:
+    app: myApp  
+  ports:
+    - protocol: TCP
+      port: 80               # Port exposed on the LoadBalancer
+      targetPort: 8082       # Target port on the container
+  type: LoadBalancer
