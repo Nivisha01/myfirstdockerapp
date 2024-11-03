@@ -14,6 +14,7 @@ pipeline {
         PROJECT_NAME = 'Web-app'
         SONAR_HOST_URL = "${SONARQUBE_SERVER}"
         DOCKER_CREDENTIALS_ID = 'DockerHub_Cred'
+        DEPLOYMENT_YAML = 'deployment.yml'  
     }
 
     stages {
@@ -74,45 +75,20 @@ pipeline {
         stage('Kubernetes Deployment') {
             steps {
                 script {
-                    // Start Minikube if not already running
-                    sh '''
-                        export PATH=$PATH:/usr/local/bin
-                        if ! minikube status | grep -q "host: Running"; then
-                            minikube start --driver=none || exit 1
-                        fi
-                    '''
+                    // Delete existing Minikube cluster if it exists
+                    sh 'minikube delete || true'
                     
-                    // Configure kubectl to use Minikube’s context
+                    // Start Minikube
+                    sh 'minikube start --driver=docker || exit 1'
+                    
+                    // Configure kubectl
                     sh 'kubectl config use-context minikube'
 
-                    // Apply the deployment configuration directly
-                    sh """
-                        kubectl apply -f - <<EOF
-                        apiVersion: apps/v1
-                        kind: Deployment
-                        metadata:
-                          name: spring-web-app
-                          namespace: default
-                        spec:
-                          replicas: 2
-                          selector:
-                            matchLabels:
-                              app: spring-web-app
-                          template:
-                            metadata:
-                              labels:
-                                app: spring-web-app
-                            spec:
-                              containers:
-                                - name: spring-web-app
-                                  image: ${DOCKER_IMAGE_NAME}
-                                  ports:
-                                    - containerPort: 8082
-                        EOF
-                    """
+                    // Apply the deployment configuration from a file
+                    sh "kubectl apply -f ${DEPLOYMENT_YAML}"
                     
-                    // Expose deployment
-                    sh "kubectl expose deployment spring-web-app --type=NodePort --port=80 --target-port=8082 --namespace=default || true"
+                    // Expose the deployment using the correct deployment name
+                    sh 'kubectl expose deployment myapp-deployment --type=NodePort --port=80 --target-port=8082 --namespace=default || true'
                     
                     // Get Minikube IP for application access
                     def minikubeIp = sh(script: 'minikube ip', returnStdout: true).trim()
