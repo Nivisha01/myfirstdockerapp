@@ -1,45 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myApp-deployment
+  name: myapp-deployment   # Change to all lowercase
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: myApp
+      app: myapp
   template:
     metadata:
       labels:
-        app: myApp
+        app: myapp
     spec:
       containers:
-        - name: myApp-container
-          image: nivisha/spring-app:latest  
+        - name: myapp-container  # Change to all lowercase
+          image: nivisha/spring-app:latest
           ports:
-            - containerPort: 8082  
-          imagePullPolicy: Always
-          resources:
-            requests:
-              memory: "256Mi"  # Minimum memory requested by the container
-              cpu: "500m"      # Minimum CPU requested by the container
-            limits:
-              memory: "512Mi"  # Maximum memory the container can use
-              cpu: "1"         # Maximum CPU the container can use
-          env:
-            - name: JAVA_OPTS
-              value: "-Xmx512m -Xms256m"  # Optional JVM settings for memory management
-      terminationGracePeriodSeconds: 30  # Allows for a graceful shutdown
+            - containerPort: 8082
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myApp-service
+  name: myapp-service  # Change to all lowercase
 spec:
-  selector:
-    app: myApp  
+  type: NodePort
   ports:
-    - protocol: TCP
-      port: 80               # Port exposed on the service
-      targetPort: 8082       # Target port on the container
-  type: NodePort  # Using NodePort for Minikube compatibility
+    - port: 80
+      targetPort: 8082
+  selector:
+    app: myapp
