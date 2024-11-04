@@ -1,32 +1,38 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp-deployment   # Change to all lowercase
+  labels:
+    app: myweb
+  name: myweb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: myapp
+      app: myweb
   template:
     metadata:
       labels:
-        app: myapp
+        app: myweb
     spec:
       containers:
-        - name: myapp-container  # Change to all lowercase
-          image: nivisha/spring-app:latest
-          ports:
-            - containerPort: 8082
+      - image: nivisha/spring-app:latest
+        imagePullPolicy: Always
+        name: myweb
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp-service  # Change to all lowercase
+  labels:
+    app: myweb
+  name: myweb
 spec:
-  type: NodePort
   ports:
-    - port: 80
-      targetPort: 8082
+  - nodePort: 32223
+    port: 80
+    protocol: TCP
+    targetPort: 8081
   selector:
-    app: myapp
+    app: myweb
+  type: NodePort
