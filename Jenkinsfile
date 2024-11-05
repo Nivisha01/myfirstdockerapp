@@ -77,25 +77,34 @@ pipeline {
                 script {
                     // Set the KUBECONFIG environment variable
                     withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
-                        // Create deployment
-                        sh """
-                            kubectl create deployment spring-web-app --image=${DOCKER_IMAGE_NAME}
-                        """
                         
-                        // Expose the deployment
+                        // Optionally delete the existing deployment if needed
+                        sh "/usr/local/bin/kubectl delete deployment spring-app || true"
+
+                        // Create the deployment
+                        sh "/usr/local/bin/kubectl create deployment spring-app --image='${DOCKER_IMAGE_NAME}'"
+
+                        // Check if the service already exists and delete it if it does
                         sh """
-                            kubectl expose deployment spring-web-app --type=LoadBalancer --port=80 --target-port=8081
+                            if /usr/local/bin/kubectl get service spring-app; then
+                                /usr/local/bin/kubectl delete service spring-app
+                            fi
                         """
 
-                        // Get status of services and pods
-                        sh "kubectl get services"
-                        sh "kubectl get pods"
-                        sh "kubectl get all"
+                        // Expose the deployment with NodePort
+                        sh "/usr/local/bin/kubectl expose deployment spring-app --type=NodePort --port=8082 --target-port=8081"
 
-                        // Optionally check for errors in pods
-                        def podStatus = sh(script: "kubectl get pods --field-selector=status.phase!=Running", returnStdout: true)
+                        // Check the status of services, pods, and resources
+                        sh "/usr/local/bin/kubectl get services"
+                        sh "/usr/local/bin/kubectl get pods"
+                        sh "/usr/local/bin/kubectl get all"
+
+                        // Check for errors in pods
+                        def podStatus = sh(script: "/usr/local/bin/kubectl get pods --field-selector=status.phase!=Running", returnStdout: true).trim()
                         if (podStatus) {
                             echo "Some pods are not running: ${podStatus}"
+                        } else {
+                            echo "All pods are running successfully."
                         }
                     }
                 }
