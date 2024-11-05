@@ -27,12 +27,6 @@ public class MyfirstdockerappApplication {
         return "Hello from Docker!";
     }
 
-    // New welcome message endpoint
-    @GetMapping("/msg/welcome")
-    public String getWelcomeMessage() {
-        return "Hello welcome to my web Application...!";
-    }
-
     // Kubernetes-specific message
     @GetMapping("/msg/kubernetes")
     public String getKubernetesMessage() {
