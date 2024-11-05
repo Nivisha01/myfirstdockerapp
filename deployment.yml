@@ -19,7 +19,8 @@ spec:
       - image: nivisha/spring-app:latest
         imagePullPolicy: Always
         name: myweb
-
+        ports:
+        - containerPort: 8081  # Specify the container port that the application is listening on
 ---
 apiVersion: v1
 kind: Service
