@@ -14,6 +14,7 @@ pipeline {
         PROJECT_NAME = 'Web-app'
         SONAR_HOST_URL = "${SONARQUBE_SERVER}"
         DOCKER_CREDENTIALS_ID = 'DockerHub_Cred'
+        KUBECONFIG_CREDENTIAL_ID  = 'mykubeconfig'
         DEPLOYMENT_YAML = 'deployment.yml'  
     }
 
@@ -75,24 +76,24 @@ pipeline {
         stage('Kubernetes Deployment') {
             steps {
                 script {
-                    // Delete existing Minikube cluster if it exists
-                    sh 'minikube delete || true'
+                    // Correcting the parameters to use the right ones
+                    kubernetesDeploy(configs: DEPLOYMENT_YAML, kubeconfigId: KUBECONFIG_CREDENTIAL_ID)
                     
-                    // Start Minikube
-                    sh 'minikube start --driver=docker || exit 1'
-                    
-                    // Configure kubectl
-                    sh 'kubectl config use-context minikube'
-
-                    // Apply the deployment configuration from a file
-                    sh "kubectl apply -f ${DEPLOYMENT_YAML}"
-                    
-                    // Expose the deployment using the correct deployment name
-                    sh 'kubectl expose deployment myapp-deployment --type=NodePort --port=80 --target-port=8082 --namespace=default || true'
-                    
-                    // Get Minikube IP for application access
+                    // Get Minikube IP for application access (if applicable)
+                    // This may need to be adjusted based on your deployment environment
                     def minikubeIp = sh(script: 'minikube ip', returnStdout: true).trim()
                     echo "Access your application at: http://${minikubeIp}:80"
+
+                    // Get status of services and pods
+                    sh "kubectl get services"
+                    sh "kubectl get pods"
+                    sh "kubectl get all"
+
+                    // Optionally check for errors in pods
+                    def podStatus = sh(script: "kubectl get pods --field-selector=status.phase!=Running", returnStdout: true)
+                    if (podStatus) {
+                        echo "Some pods are not running: ${podStatus}"
+                    }
                 }
             }
         }
