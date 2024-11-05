@@ -16,6 +16,11 @@ public class MyfirstdockerappApplication {
     }
 
     // Base message endpoint
+    @GetMapping("/msg1")
+    public String getMsg() {
+        return "Hello, welcome :)";
+    }
+    
     @GetMapping("/msg")
     public String getMsg() {
         return "Hello, welcome to simple spring app :)";
