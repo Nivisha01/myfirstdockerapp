@@ -14,8 +14,7 @@ pipeline {
         PROJECT_NAME = 'Web-app'
         SONAR_HOST_URL = "${SONARQUBE_SERVER}"
         DOCKER_CREDENTIALS_ID = 'DockerHub_Cred'
-        KUBECONFIG_CREDENTIAL_ID  = 'mykubeconfig'
-        DEPLOYMENT_YAML = 'deployment.yml'  
+        KUBECONFIG_CREDENTIAL_ID = 'mykubeconfig'
     }
 
     stages {
@@ -76,23 +75,28 @@ pipeline {
         stage('Kubernetes Deployment') {
             steps {
                 script {
-                    // Correcting the parameters to use the right ones
-                    kubernetesDeploy(configs: DEPLOYMENT_YAML, kubeconfigId: KUBECONFIG_CREDENTIAL_ID)
-                    
-                    // Get Minikube IP for application access (if applicable)
-                    // This may need to be adjusted based on your deployment environment
-                    def minikubeIp = sh(script: 'minikube ip', returnStdout: true).trim()
-                    echo "Access your application at: http://${minikubeIp}:80"
+                    // Set the KUBECONFIG environment variable
+                    withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
+                        // Create deployment
+                        sh """
+                            kubectl create deployment spring-web-app --image=${DOCKER_IMAGE_NAME}
+                        """
+                        
+                        // Expose the deployment
+                        sh """
+                            kubectl expose deployment spring-web-app --type=LoadBalancer --port=80 --target-port=8081
+                        """
 
-                    // Get status of services and pods
-                    sh "kubectl get services"
-                    sh "kubectl get pods"
-                    sh "kubectl get all"
+                        // Get status of services and pods
+                        sh "kubectl get services"
+                        sh "kubectl get pods"
+                        sh "kubectl get all"
 
-                    // Optionally check for errors in pods
-                    def podStatus = sh(script: "kubectl get pods --field-selector=status.phase!=Running", returnStdout: true)
-                    if (podStatus) {
-                        echo "Some pods are not running: ${podStatus}"
+                        // Optionally check for errors in pods
+                        def podStatus = sh(script: "kubectl get pods --field-selector=status.phase!=Running", returnStdout: true)
+                        if (podStatus) {
+                            echo "Some pods are not running: ${podStatus}"
+                        }
                     }
                 }
             }
