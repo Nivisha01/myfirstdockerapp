@@ -21,12 +21,6 @@ public class MyfirstdockerappApplication {
         return "Hello, welcome to simple spring app :)";
     }
 
-    // New welcome message endpoint
-    @GetMapping("/msg/welcome")
-    public String getWelcomeMessage() {
-        return "Hello welcome to my web Application...!";
-    }
-
     // Docker-specific message
     @GetMapping("/msg/docker")
     public String getMsgDocker() {
@@ -37,11 +31,5 @@ public class MyfirstdockerappApplication {
     @GetMapping("/msg/kubernetes")
     public String getKubernetesMessage() {
         return "Hello from Kubernetes!";
-    }
-
-    // Health check endpoint
-    @GetMapping("/health")
-    public String healthCheck() {
-        return "Application is running!";
     }
 }
