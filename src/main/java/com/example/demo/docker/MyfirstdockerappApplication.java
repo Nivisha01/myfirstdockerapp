@@ -15,12 +15,7 @@ public class MyfirstdockerappApplication {
         SpringApplication.run(MyfirstdockerappApplication.class, args);
     }
 
-    // Base message endpoint
-    @GetMapping("/msg")
-    public String getMsg() {
-        return "Hello, welcome to simple spring app :)";
-    }
-
+   
     // New welcome message endpoint
     @GetMapping("/msg/welcome")
     public String getWelcomeMessage() {
